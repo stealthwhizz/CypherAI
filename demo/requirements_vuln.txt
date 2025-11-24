@@ -1,0 +1,42 @@
+# Vulnerable Dependencies Demo File
+# ==================================
+# This requirements file contains outdated packages with known CVEs
+# for testing the Safety dependency scanner.
+#
+# WARNING: DO NOT use these versions in production!
+
+# Flask with known vulnerabilities
+Flask==2.0.1  # CVE-2023-30861 - High severity
+
+# Requests with vulnerabilities
+requests==2.25.1  # Multiple CVEs - Medium severity
+
+# urllib3 with vulnerabilities
+urllib3==1.26.5  # CVE-2021-33503 - Medium severity
+
+# Jinja2 with XSS vulnerabilities
+Jinja2==2.11.3  # CVE-2020-28493 - Medium severity
+
+# PyYAML with arbitrary code execution
+PyYAML==5.3.1  # CVE-2020-14343 - High severity
+
+# Pillow with multiple vulnerabilities
+Pillow==8.1.0  # Multiple CVEs - High severity
+
+# Cryptography with vulnerabilities
+cryptography==3.3.1  # CVE-2020-36242 - Medium severity
+
+# Django with SQL injection vulnerabilities
+Django==3.1.6  # CVE-2021-28658 - High severity
+
+# SQLAlchemy with vulnerabilities
+SQLAlchemy==1.3.0  # CVE-2019-7164 - High severity
+
+# NumPy with buffer overflow
+numpy==1.19.0  # CVE-2021-41495 - Medium severity
+
+# Werkzeug with security issues
+Werkzeug==1.0.0  # CVE-2023-25577 - High severity
+
+# httplib2 with HTTPS security issues
+httplib2==0.18.0  # CVE-2020-11078 - High severity

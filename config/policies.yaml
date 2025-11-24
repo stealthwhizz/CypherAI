@@ -1,0 +1,294 @@
+# ============================================================================
+# Cypher AI Security Policy Configuration
+# ============================================================================
+# This file defines security thresholds, compliance rules, and learning
+# parameters for the multi-agent security scanning system.
+#
+# Last Updated: 2025-11-24
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Security Thresholds
+# ----------------------------------------------------------------------------
+# Controls when to block PR merges based on vulnerability severity
+thresholds:
+  # Block merge if ANY critical vulnerability is found
+  block_on_critical: true
+  
+  # Block merge if ANY high severity vulnerability is found
+  block_on_high: false
+  
+  # Maximum number of high severity findings before blocking
+  max_high_findings: 3
+  
+  # Maximum number of medium severity findings before blocking
+  max_medium_findings: 10
+  
+  # Maximum number of low severity findings (informational)
+  max_low_findings: 50
+  
+  # Minimum risk score (0-100) to block merge
+  risk_score_threshold: 70
+
+# ----------------------------------------------------------------------------
+# Severity Weights
+# ----------------------------------------------------------------------------
+# Used to calculate overall risk score for a PR
+severity_weights:
+  CRITICAL: 10
+  HIGH: 5
+  MEDIUM: 2
+  LOW: 1
+  INFO: 0
+
+# ----------------------------------------------------------------------------
+# Compliance Frameworks
+# ----------------------------------------------------------------------------
+# Enable/disable specific compliance validation frameworks
+compliance:
+  # Payment Card Industry Data Security Standard
+  pci_dss:
+    enabled: true
+    strict_mode: true  # Fail on any PCI DSS violation
+    requirements:
+      - "6.5.1"  # Injection flaws (SQL, command)
+      - "6.5.3"  # Insecure cryptographic storage
+      - "6.5.4"  # Insecure communications
+      - "6.5.7"  # Cross-site scripting (XSS)
+      - "6.5.8"  # Improper access control
+      - "3.4"    # Render PAN unreadable
+      - "8.2.3"  # Multi-factor authentication
+  
+  # Health Insurance Portability and Accountability Act
+  hipaa:
+    enabled: false  # Enable if handling PHI
+    strict_mode: false
+    check_phi_patterns: true
+  
+  # Service Organization Control 2
+  soc2:
+    enabled: true
+    strict_mode: false
+    categories:
+      - security
+      - availability
+      - confidentiality
+  
+  # General Data Protection Regulation
+  gdpr:
+    enabled: false  # Enable if handling EU citizen data
+    strict_mode: false
+    check_pii_patterns: true
+
+# ----------------------------------------------------------------------------
+# Security Scanner Configuration
+# ----------------------------------------------------------------------------
+security_scanner:
+  # Bandit SAST configuration
+  bandit:
+    enabled: true
+    confidence_threshold: "LOW"  # LOW, MEDIUM, HIGH
+    severity_threshold: "LOW"
+    exclude_tests:
+      # - "B201"  # Example: Uncomment to skip specific tests
+  
+  # Safety dependency scanner configuration
+  safety:
+    enabled: true
+    ignore_ids: []  # CVE IDs to ignore (use sparingly)
+    check_unpinned: true  # Warn about unpinned dependencies
+  
+  # Trivy container scanner configuration
+  trivy:
+    enabled: false  # Set to true if scanning containers
+    severity_threshold: "CRITICAL,HIGH"
+    scan_types:
+      - "vuln"
+      - "config"
+      - "secret"
+  
+  # Custom regex patterns for secrets detection
+  secrets_patterns:
+    enabled: true
+    patterns:
+      - name: "AWS Access Key"
+        regex: "(?i)(AWS_ACCESS_KEY_ID|AKIA[0-9A-Z]{16})"
+        severity: "CRITICAL"
+      
+      - name: "AWS Secret Key"
+        regex: "(?i)(AWS_SECRET_ACCESS_KEY|aws_secret_access_key)"
+        severity: "CRITICAL"
+      
+      - name: "GitHub Token"
+        regex: "(?i)(ghp_[a-zA-Z0-9]{36}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})"
+        severity: "CRITICAL"
+      
+      - name: "Generic API Key"
+        regex: "(?i)(api[_-]?key|apikey)\\s*[=:]\\s*['\"][a-zA-Z0-9_\\-]{20,}['\"]"
+        severity: "HIGH"
+      
+      - name: "Private Key"
+        regex: "-----BEGIN (RSA|DSA|EC|OPENSSH) PRIVATE KEY-----"
+        severity: "CRITICAL"
+      
+      - name: "Generic Password"
+        regex: "(?i)(password|passwd|pwd)\\s*[=:]\\s*['\"][^'\"]{8,}['\"]"
+        severity: "MEDIUM"
+      
+      - name: "Database Connection String"
+        regex: "(?i)(mysql|postgresql|mongodb)://[^\\s]+"
+        severity: "HIGH"
+
+# ----------------------------------------------------------------------------
+# Performance Monitor Configuration
+# ----------------------------------------------------------------------------
+performance_monitor:
+  enabled: true
+  
+  # N+1 query detection
+  n_plus_one:
+    enabled: true
+    severity: "MEDIUM"
+    check_patterns:
+      - "for.*in.*:.*query"
+      - "for.*in.*:.*filter"
+      - "for.*in.*:.*get"
+  
+  # Large file operations
+  large_file_ops:
+    enabled: true
+    max_file_size_mb: 1
+    severity: "LOW"
+  
+  # Synchronous blocking calls
+  blocking_calls:
+    enabled: true
+    severity: "MEDIUM"
+    check_async_code: true
+
+# ----------------------------------------------------------------------------
+# Learning & Adaptive Policy Configuration
+# ----------------------------------------------------------------------------
+learning:
+  # Enable machine learning-based severity adjustment
+  enabled: true
+  
+  # Minimum number of scans before adjusting severity
+  min_scans_before_adjust: 10
+  
+  # Confidence threshold for severity adjustments (0.0-1.0)
+  confidence_threshold: 0.7
+  
+  # State persistence
+  state_file: "config/learning_state.json"
+  
+  # Learning rate for severity adjustments
+  learning_rate: 0.1
+  
+  # Maximum severity adjustment (levels)
+  max_adjustment_levels: 1
+
+# ----------------------------------------------------------------------------
+# Performance Settings
+# ----------------------------------------------------------------------------
+performance:
+  # Run agents in parallel for faster scans
+  parallel_agents: true
+  
+  # Maximum time for entire scan (seconds)
+  timeout_seconds: 120
+  
+  # Maximum file size to scan (MB)
+  max_file_size_mb: 10
+  
+  # Number of worker threads for parallel scanning
+  worker_threads: 4
+
+# ----------------------------------------------------------------------------
+# Reporting Configuration
+# ----------------------------------------------------------------------------
+reporting:
+  # Report format
+  formats:
+    - "json"
+    - "markdown"
+    # - "pdf"  # Requires additional dependencies
+  
+  # Report output directory
+  output_dir: "reports"
+  
+  # Include remediation guidance
+  include_remediation: true
+  
+  # Include code snippets in reports
+  include_code_snippets: true
+  
+  # Maximum code snippet lines
+  max_snippet_lines: 10
+
+# ----------------------------------------------------------------------------
+# GitHub Integration
+# ----------------------------------------------------------------------------
+github:
+  # Post findings as PR comments
+  post_comments: true
+  
+  # Update PR status checks
+  update_status: true
+  
+  # Request changes if vulnerabilities found
+  request_changes_on_block: true
+  
+  # Comment style
+  comment_format: "table"  # table, list, detailed
+  
+  # Collapse long reports
+  collapse_long_reports: true
+  max_comment_length: 5000
+
+# ----------------------------------------------------------------------------
+# Notification Settings
+# ----------------------------------------------------------------------------
+notifications:
+  # Enable notifications
+  enabled: false
+  
+  # Notification channels
+  channels:
+    slack:
+      enabled: false
+      webhook_url: ""
+    
+    email:
+      enabled: false
+      smtp_server: ""
+      from_address: ""
+      to_addresses: []
+
+# ----------------------------------------------------------------------------
+# Exclusions
+# ----------------------------------------------------------------------------
+# Files and directories to exclude from scanning
+exclusions:
+  paths:
+    - "tests/"
+    - "test_*.py"
+    - "*_test.py"
+    - "venv/"
+    - "env/"
+    - ".venv/"
+    - "node_modules/"
+    - ".git/"
+    - "__pycache__/"
+    - "*.pyc"
+    - "build/"
+    - "dist/"
+  
+  # File extensions to skip
+  extensions:
+    - ".md"
+    - ".txt"
+    - ".json"
+    - ".yaml"
+    - ".yml"
+    # Remove extensions from above to scan config files

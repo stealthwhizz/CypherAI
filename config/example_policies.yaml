@@ -1,0 +1,158 @@
+# ============================================================================
+# Cypher AI Example Policy Configuration
+# ============================================================================
+# This is an example configuration file showing different policy scenarios.
+# Copy this to policies.yaml and customize for your needs.
+# ============================================================================
+
+# EXAMPLE 1: Strict Security Mode
+# Use this for production environments or high-security applications
+# ----------------------------------------------------------------------------
+# thresholds:
+#   block_on_critical: true
+#   block_on_high: true
+#   max_high_findings: 0
+#   max_medium_findings: 2
+#   risk_score_threshold: 50
+
+# EXAMPLE 2: Development Mode
+# More lenient settings for active development
+# ----------------------------------------------------------------------------
+# thresholds:
+#   block_on_critical: true
+#   block_on_high: false
+#   max_high_findings: 10
+#   max_medium_findings: 50
+#   risk_score_threshold: 80
+
+# EXAMPLE 3: PCI DSS Compliant Setup
+# For handling payment card data
+# ----------------------------------------------------------------------------
+# compliance:
+#   pci_dss:
+#     enabled: true
+#     strict_mode: true
+#     requirements:
+#       - "6.5.1"  # SQL Injection
+#       - "6.5.3"  # Cryptographic storage
+#       - "3.4"    # Encrypt PANs
+#       - "8.2.3"  # MFA required
+
+# EXAMPLE 4: HIPAA Compliant Setup
+# For handling protected health information
+# ----------------------------------------------------------------------------
+# compliance:
+#   hipaa:
+#     enabled: true
+#     strict_mode: true
+#     check_phi_patterns: true
+#   
+# security_scanner:
+#   secrets_patterns:
+#     patterns:
+#       - name: "SSN"
+#         regex: "\\d{3}-\\d{2}-\\d{4}"
+#         severity: "CRITICAL"
+#       - name: "Medical Record Number"
+#         regex: "(?i)mrn[:\\s]+[A-Z0-9]{6,}"
+#         severity: "CRITICAL"
+
+# EXAMPLE 5: Fast Scanning (Minimal Checks)
+# For quick feedback during development
+# ----------------------------------------------------------------------------
+# security_scanner:
+#   bandit:
+#     enabled: true
+#     confidence_threshold: "MEDIUM"
+#     severity_threshold: "MEDIUM"
+#   safety:
+#     enabled: false  # Skip dependency checks
+#   trivy:
+#     enabled: false
+# 
+# performance_monitor:
+#   enabled: false  # Skip performance checks
+# 
+# performance:
+#   parallel_agents: true
+#   timeout_seconds: 30
+
+# EXAMPLE 6: Comprehensive Scanning
+# Maximum security coverage (slower)
+# ----------------------------------------------------------------------------
+# security_scanner:
+#   bandit:
+#     enabled: true
+#     confidence_threshold: "LOW"
+#   safety:
+#     enabled: true
+#   trivy:
+#     enabled: true
+#   secrets_patterns:
+#     enabled: true
+# 
+# performance_monitor:
+#   enabled: true
+# 
+# compliance:
+#   pci_dss:
+#     enabled: true
+#   hipaa:
+#     enabled: true
+#   soc2:
+#     enabled: true
+#   gdpr:
+#     enabled: true
+
+# EXAMPLE 7: Learning Enabled
+# Let the system adapt to your team's patterns
+# ----------------------------------------------------------------------------
+# learning:
+#   enabled: true
+#   min_scans_before_adjust: 5
+#   confidence_threshold: 0.6
+#   learning_rate: 0.2
+#   max_adjustment_levels: 2
+
+# EXAMPLE 8: Custom Secrets Patterns
+# Add organization-specific secrets to detect
+# ----------------------------------------------------------------------------
+# security_scanner:
+#   secrets_patterns:
+#     patterns:
+#       - name: "Internal API Token"
+#         regex: "(?i)int_token_[a-zA-Z0-9]{32}"
+#         severity: "CRITICAL"
+#       
+#       - name: "Service Account Key"
+#         regex: "(?i)svc_[a-zA-Z0-9]{40}"
+#         severity: "HIGH"
+#       
+#       - name: "JWT Token"
+#         regex: "eyJ[A-Za-z0-9-_=]+\\.eyJ[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_.+/=]+"
+#         severity: "MEDIUM"
+
+# EXAMPLE 9: Exclude Test Files
+# Don't scan test directories and mock data
+# ----------------------------------------------------------------------------
+# exclusions:
+#   paths:
+#     - "tests/"
+#     - "test_*.py"
+#     - "*_test.py"
+#     - "mocks/"
+#     - "fixtures/"
+#     - "__pycache__/"
+#   extensions:
+#     - ".md"
+#     - ".txt"
+
+# EXAMPLE 10: GitHub Integration
+# Auto-comment on PRs with findings
+# ----------------------------------------------------------------------------
+# github:
+#   post_comments: true
+#   update_status: true
+#   request_changes_on_block: true
+#   comment_format: "table"
+#   collapse_long_reports: true

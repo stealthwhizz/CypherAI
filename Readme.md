@@ -1,7 +1,74 @@
-# Cypher AI: Multi-Agent DevSecOps Automation
+# 🔐 Cypher AI
 
-## 📋 Competition Track
-**Enterprise Agents** - Automating security, compliance, and performance in CI/CD pipelines
+**Multi-Agent DevSecOps Security Automation System**
+
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Google Gemini](https://img.shields.io/badge/Google-Gemini-4285F4.svg)](https://ai.google.dev/)
+
+> **Kaggle x Google AI Agents Intensive Capstone Project (Enterprise Track)**  
+> *Deadline: December 1, 2025*
+
+Cypher AI is an intelligent multi-agent system that automates security scanning, compliance validation, and performance monitoring in CI/CD pipelines using Google's Gemini models.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.9 or higher
+- Google API key with Gemini access
+- GitHub personal access token (for PR integration)
+- Optional: Trivy CLI for container scanning
+
+### Installation
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/yourusername/CypherAI.git
+cd CypherAI
+```
+
+2. **Install dependencies:**
+```bash
+pip install -r requirements.txt
+```
+
+3. **Configure environment variables:**
+```bash
+cp .env.example .env
+# Edit .env and add your API keys:
+# GOOGLE_API_KEY=your_gemini_api_key_here
+# GITHUB_TOKEN=your_github_token_here
+# GITHUB_WEBHOOK_SECRET=your_webhook_secret_here
+```
+
+4. **Run the demo:**
+```bash
+python main.py --demo
+```
+
+### Basic Usage
+
+**Scan a single file:**
+```bash
+python main.py --scan path/to/file.py
+```
+
+**Scan entire directory:**
+```bash
+python main.py --scan-dir path/to/project
+```
+
+**Start webhook server:**
+```bash
+python main.py --server
+```
+
+**View current configuration:**
+```bash
+python main.py --show-config
+```
 
 ---
 
@@ -110,6 +177,92 @@ Scanner    Enforcer    Monitor     Engine
 - Learns from developer behavior (which warnings get fixed vs dismissed)
 - Adapts scoring based on team patterns (e.g., lowers severity for false positive patterns)
 **State Management**: Stores scan history and developer feedback in persistent session memory
+
+---
+
+## 🛠️ Configuration
+
+### Policy Configuration (`config/policies.yaml`)
+
+Customize security thresholds, compliance frameworks, and detection rules:
+
+```yaml
+thresholds:
+  block_on_critical: true
+  block_on_high: false
+  max_high_findings: 5
+  max_medium_findings: 20
+  risk_score_threshold: 70
+
+compliance:
+  enabled_frameworks:
+    - pci_dss
+    - hipaa
+    - soc2
+    - gdpr
+  
+  pci_dss:
+    requirements:
+      "6.5.1": ["sql_injection", "command_injection"]
+      "6.5.3": ["xss", "csrf"]
+      "3.4": ["hardcoded_secrets", "weak_crypto"]
+
+security_scanner:
+  secrets_detection:
+    patterns:
+      - name: "AWS Access Key"
+        regex: "AKIA[0-9A-Z]{16}"
+      - name: "GitHub Token"
+        regex: "ghp_[a-zA-Z0-9]{36}"
+      - name: "Private Key"
+        regex: "-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----"
+```
+
+### Environment Variables (`.env`)
+
+Required environment variables:
+
+```bash
+# Google Gemini API
+GOOGLE_API_KEY=your_gemini_api_key_here
+
+# GitHub Integration
+GITHUB_TOKEN=your_github_personal_access_token
+GITHUB_WEBHOOK_SECRET=your_webhook_secret_for_signature_verification
+
+# Server Configuration (optional)
+FLASK_ENV=production
+FLASK_HOST=0.0.0.0
+FLASK_PORT=5000
+
+# Logging (optional)
+LOG_LEVEL=INFO
+LOG_FILE=logs/cypher_ai.log
+```
+
+### Learning State (`config/learning_state.json`)
+
+The Policy Engine maintains learning state to adapt to developer patterns:
+
+```json
+{
+  "feedback_history": {
+    "sql_injection": {
+      "fixed": 15,
+      "ignored": 2
+    },
+    "outdated_dependencies": {
+      "fixed": 8,
+      "ignored": 25
+    }
+  },
+  "severity_adjustments": {
+    "urllib3_outdated": -1
+  }
+}
+```
+
+This file is automatically created and updated as developers interact with findings.
 
 ---
 
@@ -371,6 +524,101 @@ All critical and high-severity issues resolved!
 Policy Engine records:
 - Developer fixed Critical issues promptly → increase trust score
 - N+1 warning was acknowledged but not fixed → lower severity for non-blocking performance warnings from this developer in future
+
+---
+
+## 📚 API Reference
+
+### CLI Commands
+
+```bash
+# Main CLI interface (main.py)
+python main.py --demo                    # Run interactive demo
+python main.py --scan <file>             # Scan single file
+python main.py --scan-dir <directory>    # Scan directory
+python main.py --server                  # Start webhook server
+python main.py --show-config             # Display configuration
+python main.py --log-level DEBUG         # Set logging level
+
+# Webhook server (webhook_server.py)
+python webhook_server.py                 # Start Flask server on port 5000
+```
+
+### Python API
+
+```python
+from agents.orchestrator import RootOrchestrator
+from pathlib import Path
+
+# Initialize orchestrator
+orchestrator = RootOrchestrator()
+
+# Scan files
+files = [Path("src/app.py"), Path("src/auth.py")]
+results = orchestrator.analyze_pr(files, pr_number=123)
+
+# Access findings
+for agent_name, agent_results in results.items():
+    print(f"{agent_name}: {len(agent_results['findings'])} findings")
+    print(f"Risk Score: {agent_results['risk_score']}")
+    print(f"Decision: {agent_results['decision']}")
+```
+
+### GitHub Webhook Integration
+
+Configure your GitHub repository webhook:
+
+```
+Payload URL: https://your-server.com/webhook
+Content type: application/json
+Secret: <your GITHUB_WEBHOOK_SECRET>
+Events: Pull requests
+```
+
+The webhook server automatically scans PRs and posts results as comments.
+
+---
+
+## 🧪 Testing
+
+### Run the Demo
+
+The demo uses intentionally vulnerable code to showcase detection capabilities:
+
+```bash
+python main.py --demo
+```
+
+Expected output:
+- 🔴 **15+ Critical/High findings** from Security Scanner
+- ⚠️ **4 compliance violations** (PCI DSS, HIPAA)
+- 📊 **3 performance issues** (N+1 queries, blocking calls)
+- ❌ **BLOCK recommendation** from Policy Engine
+
+### Test Individual Components
+
+**Test security scanner:**
+```bash
+python main.py --scan demo/vulnerable_code.py
+```
+
+**Test compliance enforcer:**
+```bash
+python -c "
+from agents.compliance_enforcer import ComplianceEnforcerAgent
+agent = ComplianceEnforcerAgent()
+# Test with your findings
+"
+```
+
+**Verify webhook server:**
+```bash
+# Start server
+python main.py --server
+
+# In another terminal, test health endpoint
+curl http://localhost:5000/health
+```
 
 ---
 
