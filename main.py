@@ -20,19 +20,29 @@ from pathlib import Path
 from datetime import datetime
 from typing import List
 import json
+import io
+
+# Fix Unicode encoding for Windows
+if sys.platform == 'win32':
+    # Reconfigure stdout/stderr to use UTF-8
+    import codecs
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout.reconfigure(encoding='utf-8')
+    if sys.stderr.encoding != 'utf-8':
+        sys.stderr.reconfigure(encoding='utf-8')
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from agents.orchestrator import RootOrchestrator
-from colorama import Fore, Style, init
+from colorama import Fore, Style, init as colorama_init
 from dotenv import load_dotenv
+
+# Initialize colorama for Windows compatibility
+colorama_init(autoreset=True, strip=False)
 
 # Load environment variables
 load_dotenv()
-
-# Initialize colorama
-init(autoreset=True)
 
 # Setup logging
 def setup_logging(log_level: str = "INFO"):
@@ -46,12 +56,29 @@ def setup_logging(log_level: str = "INFO"):
         level=getattr(logging, log_level.upper(), logging.INFO),
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(log_file),
+            logging.FileHandler(log_file, encoding='utf-8'),
             logging.StreamHandler(sys.stdout)
         ]
     )
 
 logger = logging.getLogger(__name__)
+
+
+def validate_environment() -> bool:
+    """Check if required environment variables are set."""
+    api_key = os.getenv("GOOGLE_API_KEY")
+    
+    if not api_key:
+        print(f"{Fore.YELLOW}[!] Warning: GOOGLE_API_KEY not set{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}  Running with limited functionality. Set API key in .env file.{Style.RESET_ALL}\n")
+        return False
+    
+    if api_key == "test_key_for_demo":
+        print(f"{Fore.YELLOW}[!] Using test API key - results may be simulated{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}  For full functionality, get a real API key from: https://makersuite.google.com/app/apikey{Style.RESET_ALL}\n")
+        return False
+    
+    return True
 
 
 def print_banner():
@@ -98,9 +125,14 @@ def scan_file(file_path: str) -> int:
         
         return 0 if results["decision"] == "APPROVE" else 1
         
+    except FileNotFoundError:
+        logger.error(f"File not found: {file_path}")
+        print(f"\n{Fore.RED}[X] File not found: {file_path}{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}  Please check the file path and try again.{Style.RESET_ALL}\n")
+        return 1
     except Exception as e:
         logger.error(f"Error scanning file: {e}")
-        print(f"\n{Fore.RED}✗ Scan failed: {e}{Style.RESET_ALL}\n")
+        print(f"\n{Fore.RED}[X] Scan failed: {e}{Style.RESET_ALL}\n")
         return 1
 
 
@@ -118,7 +150,7 @@ def scan_directory(dir_path: str) -> int:
         path = Path(dir_path)
         
         if not path.exists() or not path.is_dir():
-            print(f"{Fore.RED}✗ Directory not found: {dir_path}{Style.RESET_ALL}")
+            print(f"{Fore.RED}[X] Directory not found: {dir_path}{Style.RESET_ALL}")
             return 1
         
         # Find all Python files
@@ -128,7 +160,7 @@ def scan_directory(dir_path: str) -> int:
         all_files = [str(f) for f in python_files + requirements_files]
         
         if not all_files:
-            print(f"{Fore.YELLOW}⚠ No Python or requirements files found in {dir_path}{Style.RESET_ALL}")
+            print(f"{Fore.YELLOW}[!] No Python or requirements files found in {dir_path}{Style.RESET_ALL}")
             return 0
         
         print(f"\n{Fore.CYAN}Scanning directory: {dir_path}{Style.RESET_ALL}")
@@ -150,7 +182,7 @@ def scan_directory(dir_path: str) -> int:
         
     except Exception as e:
         logger.error(f"Error scanning directory: {e}")
-        print(f"\n{Fore.RED}✗ Scan failed: {e}{Style.RESET_ALL}\n")
+        print(f"\n{Fore.RED}[X] Scan failed: {e}{Style.RESET_ALL}\n")
         return 1
 
 
@@ -182,7 +214,7 @@ def run_demo() -> int:
             existing_files = [f for f in demo_files if Path(f).exists()]
             
             if not existing_files:
-                print(f"{Fore.RED}✗ No demo files found{Style.RESET_ALL}")
+                print(f"{Fore.RED}[X] No demo files found{Style.RESET_ALL}")
                 return 1
             
             orchestrator = RootOrchestrator()
@@ -200,7 +232,7 @@ def run_demo() -> int:
             
     except Exception as e:
         logger.error(f"Error running demo: {e}")
-        print(f"\n{Fore.RED}✗ Demo failed: {e}{Style.RESET_ALL}\n")
+        print(f"\n{Fore.RED}[X] Demo failed: {e}{Style.RESET_ALL}\n")
         return 1
 
 
@@ -221,7 +253,7 @@ def start_server() -> int:
         
     except Exception as e:
         logger.error(f"Error starting server: {e}")
-        print(f"\n{Fore.RED}✗ Server failed to start: {e}{Style.RESET_ALL}\n")
+        print(f"\n{Fore.RED}[X] Server failed to start: {e}{Style.RESET_ALL}\n")
         return 1
 
 
@@ -238,7 +270,7 @@ def show_config() -> int:
         config_path = Path("config/policies.yaml")
         
         if not config_path.exists():
-            print(f"{Fore.RED}✗ Configuration file not found: {config_path}{Style.RESET_ALL}")
+            print(f"{Fore.RED}[X] Configuration file not found: {config_path}{Style.RESET_ALL}")
             return 1
         
         with open(config_path, 'r', encoding='utf-8') as f:
@@ -257,13 +289,13 @@ def show_config() -> int:
         compliance = config.get("compliance", {})
         for framework, settings in compliance.items():
             if settings.get("enabled"):
-                print(f"  ✓ {framework.upper()}")
+                print(f"  [+] {framework.upper()}")
         
         print(f"\n{Fore.YELLOW}Security Scanner:{Style.RESET_ALL}")
         scanner = config.get("security_scanner", {})
         for tool, settings in scanner.items():
             if isinstance(settings, dict) and settings.get("enabled"):
-                print(f"  ✓ {tool}")
+                print(f"  [+] {tool}")
         
         print(f"\n{Fore.CYAN}{'=' * 80}{Style.RESET_ALL}\n")
         
@@ -271,7 +303,7 @@ def show_config() -> int:
         
     except Exception as e:
         logger.error(f"Error showing config: {e}")
-        print(f"\n{Fore.RED}✗ Failed to load config: {e}{Style.RESET_ALL}\n")
+        print(f"\n{Fore.RED}[X] Failed to load config: {e}{Style.RESET_ALL}\n")
         return 1
 
 
@@ -301,11 +333,11 @@ def print_results(results: dict):
     
     # Print decision
     if decision == "APPROVE":
-        print(f"{Fore.GREEN}✓ DECISION: APPROVED{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}[+] DECISION: APPROVED{Style.RESET_ALL}")
     elif decision == "BLOCK":
-        print(f"{Fore.RED}✗ DECISION: BLOCKED{Style.RESET_ALL}")
+        print(f"{Fore.RED}[X] DECISION: BLOCKED{Style.RESET_ALL}")
     else:
-        print(f"{Fore.YELLOW}⚠ DECISION: REVIEW REQUIRED{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}[!] DECISION: REVIEW REQUIRED{Style.RESET_ALL}")
     
     print(f"{Fore.CYAN}Reason:{Style.RESET_ALL} {reason}")
     print()
@@ -313,7 +345,7 @@ def print_results(results: dict):
     # Print report location
     report_path = results.get("report_path")
     if report_path:
-        print(f"{Fore.GREEN}✓ Report saved to:{Style.RESET_ALL} {report_path}")
+        print(f"{Fore.GREEN}[+] Report saved to:{Style.RESET_ALL} {report_path}")
     
     duration = results.get("duration", 0)
     print(f"{Fore.CYAN}Duration:{Style.RESET_ALL} {duration:.2f} seconds")
@@ -353,11 +385,9 @@ Examples:
     # Print banner
     print_banner()
     
-    # Check for API key
-    if not os.getenv("GOOGLE_API_KEY"):
-        print(f"{Fore.YELLOW}⚠ Warning: GOOGLE_API_KEY not set in environment{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}  AI-powered analysis will be disabled{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}  Set your API key in .env file{Style.RESET_ALL}\n")
+    # Validate environment for operations that need API key
+    if args.demo or args.scan or args.scan_dir:
+        validate_environment()
     
     # Execute command
     try:
@@ -380,7 +410,7 @@ Examples:
         return 130
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
-        print(f"\n{Fore.RED}✗ Error: {e}{Style.RESET_ALL}\n")
+        print(f"\n{Fore.RED}[X] Error: {e}{Style.RESET_ALL}\n")
         return 1
 
 
