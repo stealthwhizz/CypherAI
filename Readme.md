@@ -75,38 +75,13 @@ Cypher AI's agents **collaborate in real-time**, just like a human security team
 
 ### Multi-Agent Coordination Pattern
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    GitHub Webhook (PR Event)                 │
-└────────────────────────┬────────────────────────────────────┘
-                         ↓
-┌─────────────────────────────────────────────────────────────┐
-│              🎯 Root Orchestrator Agent                      │
-│          (Analyzes PR Context & Delegates Tasks)             │
-└─────────────┬──────────┬──────────┬─────────────────────────┘
-              ↓          ↓          ↓          ↓
-    ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-    │  🔒 Security│ │ ✅ Compliance│ │ ⚡Performance│ │ 🧠 Policy   │
-    │   Scanner   │ │   Enforcer   │ │   Monitor   │ │   Engine    │
-    │             │ │              │ │             │ │             │
-    │ • Bandit    │ │ • PCI DSS    │ │ • N+1 Query │ │ • Learning  │
-    │ • Safety    │ │ • SOC 2      │ │ • Latency   │ │ • Adaptive  │
-    │ • Trivy     │ │ • Secrets    │ │ • Memory    │ │ • Feedback  │
-    └──────┬──────┘ └──────┬───────┘ └──────┬──────┘ └──────┬──────┘
-           │                │                │               │
-           └────────────────┴────────────────┴───────────────┘
-                                   ↓
-                    ┌──────────────────────────┐
-                    │   Aggregate & Synthesize  │
-                    │   Risk Score: 0-100       │
-                    │   Decision: Block/Approve │
-                    └──────────┬────────────────┘
-                               ↓
-                    ┌──────────────────────────┐
-                    │  Post PR Comment + Report │
-                    │  Update Learning State    │
-                    └───────────────────────────┘
-```
+![CypherAI Workflow](https://github.com/stealthwhizz/CypherAI/blob/main/WORKFLOW_DIAGRAM.md#multi-agent-collaboration-detail)
+
+**Interactive Diagrams**: View the complete workflow in [WORKFLOW_DIAGRAM.md](WORKFLOW_DIAGRAM.md) - GitHub auto-renders beautiful Mermaid flowcharts showing:
+- 📊 Complete system flow (PR → agents → decision)
+- 🤖 Multi-agent collaboration detail
+- 🎯 Simplified user journey
+- 🧠 Adaptive learning flow
 
 </div>
 
