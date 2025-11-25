@@ -15,13 +15,19 @@ Uses Google Gemini for intelligent policy recommendations.
 """
 
 import os
-import json
 import yaml
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+import json
 import logging
-import google.generativeai as genai
+
+# Google ADK imports
+from google.adk.agents import LlmAgent
+from google.adk.models.google_llm import Gemini
+from google.adk.runners import InMemoryRunner
+from google.adk.sessions import InMemorySessionService
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
@@ -49,14 +55,43 @@ class PolicyEngineAgent:
         )
         self.learning_state = self._load_learning_state()
         
-        # Initialize Gemini
+        # Initialize ADK Agent with Gemini and session management
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
-            logger.info("Policy Engine initialized with Gemini 1.5 Flash")
+            os.environ["GOOGLE_API_KEY"] = api_key
+            
+            # Configure retry options
+            retry_config = types.HttpRetryOptions(
+                attempts=5,
+                exp_base=7,
+                initial_delay=1,
+                http_status_codes=[429, 500, 503, 504]
+            )
+            
+            # Create ADK Agent for policy decisions
+            self.agent = LlmAgent(
+                name="policy_engine",
+                model=Gemini(
+                    model="gemini-1.5-flash",
+                    retry_options=retry_config
+                ),
+                description="Policy engine that makes merge decisions based on security policies and risk assessment",
+                instruction="""You are a security policy expert making merge decisions.
+                Analyze security findings, assess risk scores, and make informed decisions on whether to approve, block, or require review.
+                Consider severity, compliance requirements, and organizational risk tolerance."""
+            )
+            
+            # Create session service for state management
+            self.session_service = InMemorySessionService()
+            
+            # Create runner
+            self.runner = InMemoryRunner(agent=self.agent)
+            
+            logger.info("Policy Engine initialized with ADK Gemini 1.5 Flash")
         else:
-            self.model = None
+            self.agent = None
+            self.runner = None
+            self.session_service = None
             logger.warning("No GOOGLE_API_KEY found. Running without AI assistance.")
     
     def _load_policies(self) -> Dict[str, Any]:
@@ -378,7 +413,7 @@ class PolicyEngineAgent:
         Returns:
             Recommendations text
         """
-        if not self.model:
+        if not self.agent:
             return "AI recommendations unavailable (no API key configured)"
         
         try:
@@ -406,8 +441,13 @@ class PolicyEngineAgent:
             Keep response concise (max 200 words).
             """
             
-            response = self.model.generate_content(prompt)
-            return response.text
+            # Use ADK runner to get recommendations
+            import asyncio
+            response = asyncio.run(self.runner.run_debug(prompt))
+            # Extract text from response (may be list of events or string)
+            if isinstance(response, list):
+                return str(response[-1]) if response else "No response generated"
+            return str(response)
             
         except Exception as e:
             logger.error(f"Error getting policy recommendations: {e}")

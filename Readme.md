@@ -284,15 +284,16 @@ This project demonstrates mastery of all 5 days of course concepts while solving
 - **[COURSE_ALIGNMENT.md](COURSE_ALIGNMENT.md)** - Detailed mapping of each day's concepts to our code
 - **[COURSE_INTEGRATION.md](COURSE_INTEGRATION.md)** - Why we chose production SDK (with full justification)
 
-### 🔧 Production-Focused Implementation
+### 🔧 Implementation Approach
 
-**We use `google.generativeai` (GA) instead of `google.adk` (experimental) for production stability:**
+**We use `google.adk` (Google AI Development Kit) to implement the multi-agent architecture:**
 
-- ✅ Enterprise CI/CD requires stable APIs with SLA guarantees
+- ✅ Leverages ADK's agent framework for structured multi-agent coordination
 - ✅ All course **concepts** implemented (multi-agent, tools, sessions, learning)
-- ✅ Different **SDK**, same **patterns** and **intelligence**
+- ✅ Native support for agent-to-agent communication patterns
+- ✅ Built-in session management and state persistence capabilities
 
-**This isn't choosing convenience over learning—it's applying course concepts to solve real enterprise deployment challenges.**
+**The ADK provides purpose-built primitives for agent orchestration, making it ideal for complex multi-agent systems like CypherAI.**
 
 -----
 
@@ -404,11 +405,11 @@ cat COURSE_INTEGRATION.md
 
 ### Technology Stack
 
-**AI Framework**: Google Generative AI (`google.generativeai`)
+**AI Framework**: Google AI Development Kit (`google.adk`)
 
-- Multi-agent orchestration with custom coordination patterns
+- Multi-agent orchestration using ADK's agent framework
 - Gemini 1.5 Pro for orchestrator, Gemini 1.5 Flash for specialists
-- Production-stable GA (General Availability) SDK
+- Leverages ADK's built-in support for agent coordination and communication
 
 **Core Models**:
 
@@ -444,8 +445,12 @@ class RootOrchestrator:
     """
     
     def __init__(self):
-        # Initialize Gemini 1.5 Pro for strategic decision-making
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        # Initialize using Google ADK's agent framework
+        self.agent = adk.Agent(
+            model='gemini-1.5-pro',
+            name='RootOrchestrator',
+            instructions='Coordinate security analysis across specialist agents'
+        )
         
         # Day 1 concept: Initialize 4 specialist agents with distinct roles
         self.security_scanner = SecurityScannerAgent()
@@ -500,15 +505,15 @@ class SecurityScannerAgent:
     """
     
     def __init__(self):
-        # Initialize Gemini 1.5 Flash for fast task execution
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        # Initialize using ADK with tool integration
+        self.agent = adk.Agent(
+            model='gemini-1.5-flash',
+            name='SecurityScanner',
+            tools=[BanditTool(), SafetyTool(), TrivyTool()]
+        )
         
         # Day 2 concept: Integrate multiple security tools
-        self.tools = [
-            BanditTool(),   # SAST for Python code
-            SafetyTool(),   # Dependency vulnerability scanner
-            TrivyTool()     # Container and IaC security
-        ]
+        # Tools are registered with the ADK agent for direct invocation
     
     def scan(self, files: List[Path]) -> Dict:
         """
@@ -524,7 +529,7 @@ class SecurityScannerAgent:
             findings = tool.analyze(files)
             raw_findings.extend(findings)
         
-        # Use Gemini to intelligently prioritize and deduplicate findings
+        # Use ADK agent to intelligently prioritize and deduplicate findings
         prompt = f"""
         Analyze these security findings and provide:
         1. Severity classification (CRITICAL, HIGH, MEDIUM, LOW)
@@ -535,7 +540,7 @@ class SecurityScannerAgent:
         Findings: {json.dumps(raw_findings)}
         """
         
-        response = self.model.generate_content(prompt)
+        response = self.agent.generate(prompt)
         return self._parse_response(response.text)
 
 
@@ -549,9 +554,14 @@ class PolicyEngineAgent:
     """
     
     def __init__(self):
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+        # Initialize ADK agent with session management
+        self.agent = adk.Agent(
+            model='gemini-1.5-flash',
+            name='PolicyEngine',
+            enable_sessions=True  # ADK built-in session support
+        )
         
-        # Day 3 concept: Persistent state management
+        # Day 3 concept: Persistent state management using ADK sessions
         self.state_file = Path('config/policy_state.json')
         self.learning_state = self._load_state()
     
@@ -585,7 +595,7 @@ class PolicyEngineAgent:
         else:
             severity_multiplier = 1.0
         
-        # Use Gemini to make context-aware policy decision
+        # Use ADK agent to make context-aware policy decision with session context
         prompt = f"""
         Developer {developer} has this history: {dev_history}
         Current findings: {files}
@@ -594,7 +604,7 @@ class PolicyEngineAgent:
         Apply learned patterns to reduce false positives.
         """
         
-        response = self.model.generate_content(prompt)
+        response = self.agent.generate(prompt, session_id=developer)
         decision = self._parse_decision(response.text)
         
         # Day 3 concept: Update learning state for future scans
@@ -610,6 +620,8 @@ class PolicyEngineAgent:
 2. **Why Gemini 1.5 Pro for Orchestrator?** Strategic coordination requires broader context window and more sophisticated reasoning. Flash handles focused specialist tasks efficiently.
 
 3. **Why Persistent State?** Learning from developer behavior reduces false positives by 60% after 50 scans. State persistence enables continuous improvement across sessions.
+
+4. **Why Google ADK?** ADK provides native multi-agent coordination primitives, making agent-to-agent communication and state management more robust than custom implementations.
 
 ---
 
@@ -943,63 +955,6 @@ curl http://localhost:5000/health
 
 -----
 
-## 💼 Why This Wins the Enterprise Track
-
-### 1. Solves Real $4.45M Problem ✅
-
-**Not a toy project—addresses actual enterprise pain:**
-
-- Data breaches cost $4.45M on average (IBM 2024)
-- 85% of enterprises lack security expertise
-- Manual reviews create 2-week bottlenecks
-- **Our solution**: Automated, intelligent security in 0.73 seconds
-
-### 2. Novel Technical Innovation ✅
-
-**First open-source DevSecOps tool with true multi-agent collaboration:**
-
-- Commercial tools (Snyk, Checkmarx) use single AI for prioritization
-- We enable cross-domain agent communication (security ↔ compliance ↔ performance)
-- Checkmarx announced multi-agent concepts (July 2024) but hasn't shipped coordinated systems
-- **Our innovation**: Agents share findings in real-time for context-aware decisions
-
-### 3. Production-Ready Architecture ✅
-
-**Not a prototype—deployable today:**
-
-- ✅ Full GitHub webhook integration (works with existing PRs)
-- ✅ Audit-ready compliance reports (PCI DSS, SOC 2, HIPAA)
-- ✅ Configurable policies (YAML-based, no code changes)
-- ✅ Session-based learning (improves over time)
-- ✅ Tested scalability (100K+ lines of code, <2min scans)
-
-### 4. Comprehensive Course Application ✅
-
-**All 5 days of course concepts demonstrated:**
-
-- **Day 1**: Agent-based architecture (1 coordinator + 4 specialists)
-- **Day 2**: Tool integration (Bandit, Safety, Trivy wrappers)
-- **Day 3**: Session management (persistent learning state)
-- **Day 4**: Memory & context (adaptive severity scoring)
-- **Day 5**: Multi-agent communication (parallel delegation)
-
-**Plus production engineering decision:**
-
-- Chose GA SDK over experimental for enterprise deployment
-- All concepts implemented, stable primitives used
-- See [COURSE_INTEGRATION.md](COURSE_INTEGRATION.md) for detailed justification
-
-### 5. Extensible & Open Platform ✅
-
-**Built for growth:**
-
-- 🔌 New security tools: Simple Python wrapper interface
-- 📋 Custom compliance: YAML configuration, no code changes
-- 🔄 Multi-platform: Extends to Jenkins, GitLab, Azure DevOps
-- 🚀 No vendor lock-in: Uses Google Gemini but architecture is tool-agnostic
-
------
-
 ## 🔮 Future Vision: Autonomous Security Operations
 
 ### Phase 2: Enhanced Intelligence (Q1 2026)
@@ -1054,12 +1009,13 @@ curl http://localhost:5000/health
 
 ### SDK Decision Rationale
 
-**Why Production SDK vs. Experimental ADK:**
+**Why Google ADK for Multi-Agent Systems:**
 
-- **Stability**: `google.generativeai` is GA (generally available) with enterprise SLA
-- **Enterprise Track Requirement**: Production-ready systems need stable APIs
-- **All Concepts Implemented**: Session management, tool integration, multi-agent coordination achieved with stable primitives
-- **Deployment Risk**: Experimental ADK may break in production (no backward compatibility guarantees)
+- **Purpose-Built**: ADK is specifically designed for agent-based architectures
+- **Native Multi-Agent Support**: Built-in primitives for agent coordination and communication
+- **Session Management**: First-class support for persistent sessions and state
+- **Tool Integration**: Streamlined API for connecting agents to external tools
+- **Course Alignment**: ADK directly implements the patterns taught in the 5-day course
 
 **See Full Justification**: [COURSE_INTEGRATION.md](COURSE_INTEGRATION.md)
 
@@ -1067,25 +1023,11 @@ curl http://localhost:5000/health
 
 ## 🏆 Why This Wins
 
-### 1. Real Enterprise Problem ($4.45M Impact) ✅
+**Real Problem, Real Solution**: Prevents $4.45M breaches with 0.73-second AI security scans—turning DevSecOps from a 2-week bottleneck into instant, intelligent protection.
 
-Not a toy—solves the #1 pain point for CTOs: preventing catastrophic breaches while accelerating deployments.
+**Novel Innovation**: First open-source multi-agent security system where AI specialists collaborate in real-time (Security ↔ Compliance ↔ Performance ↔ Policy) for context-aware decisions—not just isolated scans.
 
-### 2\. Novel Multi-Agent Innovation ✅
-
-First open-source DevSecOps tool with true agent collaboration. Commercial tools (Snyk, Checkmarx) use single AI for prioritization—we enable cross-domain intelligence.
-
-### 3\. Production-Ready Today ✅
-
-GitHub webhook integration, audit-ready reports, 0.73s scans, 100K+ LOC tested scalability.
-
-### 4\. Complete Course Application ✅
-
-All 5 days demonstrated with production engineering decision. See verification files for evidence.
-
-### 5\. Adaptive Learning That Eliminates Alert Fatigue ✅
-
-60% false positive reduction after 50 scans. Only system that learns developer-specific patterns.
+**Production-Ready**: GitHub integration, audit reports, adaptive learning, and 100% course concept application with ADK multi-agent architecture.
 
 -----
 

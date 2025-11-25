@@ -19,7 +19,12 @@ import re
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 import logging
-import google.generativeai as genai
+
+# Google ADK imports
+from google.adk.agents import LlmAgent
+from google.adk.models.google_llm import Gemini
+from google.adk.runners import InMemoryRunner
+from google.genai import types
 
 from tools.bandit_tool import BanditTool
 from tools.safety_tool import SafetyTool
@@ -116,14 +121,42 @@ class SecurityScannerAgent:
         else:
             self.secrets_patterns = self.SECRETS_PATTERNS
         
-        # Initialize Gemini
+        # Initialize ADK Agent with Gemini
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
-            logger.info("Security Scanner initialized with Gemini 1.5 Flash")
+            os.environ["GOOGLE_API_KEY"] = api_key
+            
+            # Configure retry options
+            retry_config = types.HttpRetryOptions(
+                attempts=5,
+                exp_base=7,
+                initial_delay=1,
+                http_status_codes=[429, 500, 503, 504]
+            )
+            
+            # Create ADK Agent for security analysis
+            self.agent = LlmAgent(
+                name="security_scanner",
+                model=Gemini(
+                    model="gemini-1.5-flash",
+                    retry_options=retry_config
+                ),
+                description="Security scanner agent that analyzes vulnerabilities and provides security insights",
+                instruction="""You are a security expert specializing in vulnerability analysis.
+                Analyze security scan findings and provide:
+                1. Overall security posture assessment
+                2. Priority issues to fix
+                3. Quick win recommendations
+                Keep responses concise and actionable."""
+            )
+            
+            # Create runner
+            self.runner = InMemoryRunner(agent=self.agent)
+            
+            logger.info("Security Scanner initialized with ADK Gemini 1.5 Flash")
         else:
-            self.model = None
+            self.agent = None
+            self.runner = None
             logger.warning("No GOOGLE_API_KEY found. Running without AI analysis.")
     
     def scan_files(self, file_paths: List[str]) -> List[Dict[str, Any]]:
@@ -271,7 +304,7 @@ class SecurityScannerAgent:
         findings: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
         """
-        Use Gemini to analyze findings and provide insights.
+        Use ADK Gemini agent to analyze findings and provide insights.
         
         Args:
             findings: List of security findings
@@ -279,7 +312,7 @@ class SecurityScannerAgent:
         Returns:
             Analysis dictionary with insights
         """
-        if not self.model or not findings:
+        if not self.agent or not findings:
             return {"analysis": "AI analysis unavailable"}
         
         try:
@@ -324,10 +357,18 @@ class SecurityScannerAgent:
             Keep response concise (max 150 words).
             """
             
-            response = self.model.generate_content(prompt)
+            # Use ADK runner to get analysis
+            import asyncio
+            response = asyncio.run(self.runner.run_debug(prompt))
+            
+            # Extract text from response
+            if isinstance(response, list):
+                analysis_text = str(response[-1]) if response else "No analysis generated"
+            else:
+                analysis_text = str(response)
             
             return {
-                "analysis": response.text,
+                "analysis": analysis_text,
                 "summary": summary
             }
             

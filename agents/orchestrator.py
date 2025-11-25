@@ -22,7 +22,13 @@ from typing import Dict, Any, List
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
-import google.generativeai as genai
+
+# Google ADK imports
+from google.adk.agents import Agent
+from google.adk.models.google_llm import Gemini
+from google.adk.runners import InMemoryRunner
+from google.adk.sessions import InMemorySessionService
+from google.genai import types
 
 from agents.security_scanner import SecurityScannerAgent
 from agents.compliance_enforcer import ComplianceEnforcerAgent
@@ -74,14 +80,40 @@ class RootOrchestrator:
         self.parallel_enabled = self.config.get("performance", {}).get("parallel_agents", True)
         self.max_workers = self.config.get("performance", {}).get("worker_threads", 4)
         
-        # Initialize Gemini Pro for orchestration
+        # Initialize ADK Agent with Gemini Pro for orchestration
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-pro')
-            logger.info("Root Orchestrator initialized with Gemini 1.5 Pro")
+            os.environ["GOOGLE_API_KEY"] = api_key
+            
+            # Configure retry options for reliability
+            retry_config = types.HttpRetryOptions(
+                attempts=5,
+                exp_base=7,
+                initial_delay=1,
+                http_status_codes=[429, 500, 503, 504]
+            )
+            
+            # Create ADK Agent for orchestration
+            self.agent = Agent(
+                name="root_orchestrator",
+                model=Gemini(
+                    model="gemini-1.5-pro",
+                    retry_options=retry_config
+                ),
+                description="Root orchestrator that coordinates all specialist security agents",
+                instruction="""You are the root orchestrator for Cypher AI's multi-agent security system.
+                Your role is to coordinate security scanning, compliance checking, and performance monitoring.
+                Analyze findings from all agents and make intelligent merge decisions based on risk assessment."""
+            )
+            
+            # Create session service and runner
+            self.session_service = InMemorySessionService()
+            self.runner = InMemoryRunner(agent=self.agent)
+            
+            logger.info("Root Orchestrator initialized with ADK Gemini 1.5 Pro")
         else:
-            self.model = None
+            self.agent = None
+            self.runner = None
             logger.warning("No GOOGLE_API_KEY found. Running without AI orchestration.")
         
         logger.info("All agents initialized successfully")

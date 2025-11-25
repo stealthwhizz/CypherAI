@@ -16,7 +16,12 @@ Uses Google Gemini for intelligent compliance mapping.
 import os
 from typing import Dict, Any, List, Optional
 import logging
-import google.generativeai as genai
+
+# Google ADK imports
+from google.adk.agents import LlmAgent
+from google.adk.models.google_llm import Gemini
+from google.adk.runners import InMemoryRunner
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
@@ -64,14 +69,39 @@ class ComplianceEnforcerAgent:
         self.config = config
         self.enabled_frameworks = self._get_enabled_frameworks()
         
-        # Initialize Gemini
+        # Initialize ADK Agent with Gemini
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
-            logger.info("Compliance Enforcer initialized with Gemini 1.5 Flash")
+            os.environ["GOOGLE_API_KEY"] = api_key
+            
+            # Configure retry options
+            retry_config = types.HttpRetryOptions(
+                attempts=5,
+                exp_base=7,
+                initial_delay=1,
+                http_status_codes=[429, 500, 503, 504]
+            )
+            
+            # Create ADK Agent for compliance analysis
+            self.agent = LlmAgent(
+                name="compliance_enforcer",
+                model=Gemini(
+                    model="gemini-1.5-flash",
+                    retry_options=retry_config
+                ),
+                description="Compliance enforcer that validates security frameworks and regulations",
+                instruction="""You are a compliance expert specializing in security frameworks.
+                Analyze security findings and map them to compliance requirements for PCI DSS, HIPAA, SOC 2, and GDPR.
+                Provide clear compliance violation reports."""
+            )
+            
+            # Create runner
+            self.runner = InMemoryRunner(agent=self.agent)
+            
+            logger.info("Compliance Enforcer initialized with ADK Gemini 1.5 Flash")
         else:
-            self.model = None
+            self.agent = None
+            self.runner = None
             logger.warning("No GOOGLE_API_KEY found. Running without AI assistance.")
     
     def _get_enabled_frameworks(self) -> List[str]:

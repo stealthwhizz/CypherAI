@@ -14,12 +14,18 @@ Uses Google Gemini for performance analysis.
 """
 
 import os
+import json
 import re
 import ast
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
-import google.generativeai as genai
+
+# Google ADK imports
+from google.adk.agents import LlmAgent
+from google.adk.models.google_llm import Gemini
+from google.adk.runners import InMemoryRunner
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +48,40 @@ class PerformanceMonitorAgent:
         self.config = config
         self.enabled = config.get("enabled", True)
         
-        # Initialize Gemini
+        # Initialize ADK Agent with Gemini
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
-            logger.info("Performance Monitor initialized with Gemini 1.5 Flash")
+            os.environ["GOOGLE_API_KEY"] = api_key
+            
+            # Configure retry options
+            retry_config = types.HttpRetryOptions(
+                attempts=5,
+                exp_base=7,
+                initial_delay=1,
+                http_status_codes=[429, 500, 503, 504]
+            )
+            
+            # Create ADK Agent for performance analysis
+            self.agent = LlmAgent(
+                name="performance_monitor",
+                model=Gemini(
+                    model="gemini-1.5-flash",
+                    retry_options=retry_config
+                ),
+                description="Performance monitor that analyzes code for performance issues and inefficiencies",
+                instruction="""You are a performance optimization expert.
+                Analyze code for performance issues, inefficient patterns, and optimization opportunities.
+                Provide actionable recommendations."""
+            )
+            
+            # Create runner
+            self.runner = InMemoryRunner(agent=self.agent)
+            
+            logger.info("Performance Monitor initialized with ADK Gemini 1.5 Flash")
         else:
-            self.model = None
-            logger.warning("No GOOGLE_API_KEY found.")
+            self.agent = None
+            self.runner = None
+            logger.warning("No GOOGLE_API_KEY found. Running without AI analysis.")
     
     def analyze_files(self, file_paths: List[str]) -> List[Dict[str, Any]]:
         """
