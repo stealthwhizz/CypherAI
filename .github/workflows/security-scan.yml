@@ -1,0 +1,190 @@
+name: CypherAI Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  security-scan:
+    name: Multi-Agent Security Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 🔍 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+      
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install bandit safety  # Security tools
+      
+      - name: 🔐 Run CypherAI Security Scan
+        run: |
+          echo "🚀 Starting Multi-Agent Security Scan..."
+          
+          # Get changed files in PR
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(py|js|ts|java|go|rb)$' || echo "")
+          else
+            # For push events, scan all Python files
+            CHANGED_FILES=$(find . -name "*.py" -not -path "./.git/*" -not -path "./__pycache__/*")
+          fi
+          
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "ℹ️ No code files changed, skipping scan"
+            exit 0
+          fi
+          
+          echo "📋 Files to scan:"
+          echo "$CHANGED_FILES"
+          
+          # Run scan on each file
+          for file in $CHANGED_FILES; do
+            if [ -f "$file" ]; then
+              echo "🔍 Scanning: $file"
+              python main.py --scan "$file" || true
+            fi
+          done
+      
+      - name: 📊 Generate Security Report
+        if: always()
+        run: |
+          echo "## 🔐 CypherAI Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Find the latest report
+          LATEST_REPORT=$(ls -t reports/*.json 2>/dev/null | head -1 || echo "")
+          
+          if [ -n "$LATEST_REPORT" ]; then
+            echo "✅ Scan completed successfully" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "📄 **Report**: \`$LATEST_REPORT\`" >> $GITHUB_STEP_SUMMARY
+            
+            # Extract key metrics (requires jq)
+            if command -v jq &> /dev/null; then
+              RISK_SCORE=$(jq -r '.risk_score // "N/A"' "$LATEST_REPORT")
+              DECISION=$(jq -r '.decision // "N/A"' "$LATEST_REPORT")
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Risk Score**: $RISK_SCORE/100" >> $GITHUB_STEP_SUMMARY
+              echo "**Decision**: $DECISION" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⚠️ No scan report generated" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: 📤 Upload Security Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-report-${{ github.run_number }}
+          path: reports/
+          retention-days: 30
+      
+      - name: 💬 Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Find latest report
+            const reportsDir = 'reports';
+            if (!fs.existsSync(reportsDir)) {
+              console.log('No reports directory found');
+              return;
+            }
+            
+            const files = fs.readdirSync(reportsDir)
+              .filter(f => f.endsWith('.json'))
+              .map(f => ({
+                name: f,
+                time: fs.statSync(path.join(reportsDir, f)).mtime.getTime()
+              }))
+              .sort((a, b) => b.time - a.time);
+            
+            if (files.length === 0) {
+              console.log('No JSON reports found');
+              return;
+            }
+            
+            const latestReport = path.join(reportsDir, files[0].name);
+            const reportData = JSON.parse(fs.readFileSync(latestReport, 'utf8'));
+            
+            // Build comment
+            let comment = '## 🔐 CypherAI Security Scan Results\n\n';
+            comment += `**Risk Score**: ${reportData.risk_score || 'N/A'}/100\n`;
+            comment += `**Decision**: ${reportData.decision || 'N/A'}\n\n`;
+            
+            // Add findings summary
+            if (reportData.findings) {
+              const critical = reportData.findings.filter(f => f.severity === 'CRITICAL').length;
+              const high = reportData.findings.filter(f => f.severity === 'HIGH').length;
+              const medium = reportData.findings.filter(f => f.severity === 'MEDIUM').length;
+              const low = reportData.findings.filter(f => f.severity === 'LOW').length;
+              
+              comment += '### 📊 Severity Breakdown\n\n';
+              if (critical > 0) comment += `- 🔴 **Critical**: ${critical}\n`;
+              if (high > 0) comment += `- ⚠️ **High**: ${high}\n`;
+              if (medium > 0) comment += `- ⚠️ **Medium**: ${medium}\n`;
+              if (low > 0) comment += `- ℹ️ **Low**: ${low}\n`;
+            }
+            
+            comment += '\n---\n';
+            comment += `📄 Full report available in workflow artifacts`;
+            
+            // Post comment
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  code-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Dependencies
+        run: |
+          pip install flake8 black pylint
+      
+      - name: Run Flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+      
+      - name: Run Black (Check Only)
+        run: black --check . || true
+      
+      - name: Run Pylint
+        run: pylint agents tools || true
