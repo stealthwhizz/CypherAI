@@ -5,11 +5,10 @@ Cypher AI Main Entry Point
 CLI interface for the multi-agent security scanning system.
 
 Usage:
-    python main.py --demo                    # Run demo with test files
     python main.py --scan FILE               # Scan specific file
     python main.py --scan-dir DIR            # Scan directory
     python main.py --server                  # Start webhook server
-    python main.py --show-config             # Show configuration
+    python main.py --show-config             # Display configuration
 """
 
 import argparse
@@ -69,13 +68,9 @@ def validate_environment() -> bool:
     api_key = os.getenv("GOOGLE_API_KEY")
     
     if not api_key:
-        print(f"{Fore.YELLOW}[!] Warning: GOOGLE_API_KEY not set{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}  Running with limited functionality. Set API key in .env file.{Style.RESET_ALL}\n")
-        return False
-    
-    if api_key == "test_key_for_demo":
-        print(f"{Fore.YELLOW}[!] Using test API key - results may be simulated{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}  For full functionality, get a real API key from: https://makersuite.google.com/app/apikey{Style.RESET_ALL}\n")
+        print(f"{Fore.RED}[ERROR] GOOGLE_API_KEY not set{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}  Please set your API key in .env file{Style.RESET_ALL}")
+        print(f"{Fore.YELLOW}  Get your API key from: https://makersuite.google.com/app/apikey{Style.RESET_ALL}\n")
         return False
     
     return True
@@ -183,56 +178,6 @@ def scan_directory(dir_path: str) -> int:
     except Exception as e:
         logger.error(f"Error scanning directory: {e}")
         print(f"\n{Fore.RED}[X] Scan failed: {e}{Style.RESET_ALL}\n")
-        return 1
-
-
-def run_demo() -> int:
-    """
-    Run the demo with test vulnerable files.
-    
-    Returns:
-        Exit code
-    """
-    try:
-        demo_script = Path("demo/run_demo.py")
-        
-        if demo_script.exists():
-            # Run the dedicated demo script
-            import subprocess
-            result = subprocess.run([sys.executable, str(demo_script)], check=False)
-            return result.returncode
-        else:
-            # Fallback: run basic demo
-            print(f"{Fore.YELLOW}Demo script not found. Running basic scan...{Style.RESET_ALL}\n")
-            
-            demo_files = [
-                "demo/vulnerable_code.py",
-                "demo/requirements_vuln.txt"
-            ]
-            
-            # Filter existing files
-            existing_files = [f for f in demo_files if Path(f).exists()]
-            
-            if not existing_files:
-                print(f"{Fore.RED}[X] No demo files found{Style.RESET_ALL}")
-                return 1
-            
-            orchestrator = RootOrchestrator()
-            
-            pr_data = {
-                "pr_number": 123,
-                "title": "Demo: Testing Cypher AI",
-                "files_changed": existing_files
-            }
-            
-            results = orchestrator.analyze_pr(pr_data)
-            print_results(results)
-            
-            return 0
-            
-    except Exception as e:
-        logger.error(f"Error running demo: {e}")
-        print(f"\n{Fore.RED}[X] Demo failed: {e}{Style.RESET_ALL}\n")
         return 1
 
 
@@ -360,15 +305,13 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py --demo                        Run demo with test files
-  python main.py --scan demo/vulnerable_code.py   Scan specific file
+  python main.py --scan your_file.py           Scan specific file
   python main.py --scan-dir ./src              Scan entire directory
   python main.py --server                      Start webhook server
   python main.py --show-config                 Show current configuration
         """
     )
     
-    parser.add_argument('--demo', action='store_true', help='Run demo with test files')
     parser.add_argument('--scan', type=str, metavar='FILE', help='Scan specific file')
     parser.add_argument('--scan-dir', type=str, metavar='DIR', help='Scan directory')
     parser.add_argument('--server', action='store_true', help='Start webhook server')
@@ -386,14 +329,13 @@ Examples:
     print_banner()
     
     # Validate environment for operations that need API key
-    if args.demo or args.scan or args.scan_dir:
-        validate_environment()
+    if args.scan or args.scan_dir:
+        if not validate_environment():
+            return 1
     
     # Execute command
     try:
-        if args.demo:
-            return run_demo()
-        elif args.scan:
+        if args.scan:
             return scan_file(args.scan)
         elif args.scan_dir:
             return scan_directory(args.scan_dir)
