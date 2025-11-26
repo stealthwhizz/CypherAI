@@ -1,0 +1,58 @@
+# Environment files with secrets
+.env
+*.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Development tools
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+Readme.md
+CLOUD_DEPLOYMENT.md
+COMPETITION_SUMMARY.md
+COURSE_*.md
+
+# Demo files
+demo/
+reports/
+logs/
+
+# Notebooks
+*.ipynb
+kaggle x google/
+
+# Images
+*.png
+*.jpg
+*.jpeg
+unnamed.jpg
+
+# Testing
+tests/
+*.test.py
+pytest.ini
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Deployment files (not needed in image)
+deploy.sh
