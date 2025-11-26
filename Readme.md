@@ -16,6 +16,8 @@
 
 *What if your security team was 5 AI agents that never sleep?*
 
+🌐 **Live Demo**: [https://cypherai-scanner-1008964463542.us-central1.run.app](https://cypherai-scanner-1008964463542.us-central1.run.app)
+
 **[📖 Course Integration](COURSE_INTEGRATION.md)** • **[📚 Course Patterns](COURSE_PATTERNS.md)** • **[🔍 Cloud Deployment](CLOUD_DEPLOYMENT.md)**
 
 </div>
@@ -996,6 +998,22 @@ curl http://localhost:5000/health
 
 ## 🎓 Quick Start
 
+### ✅ Live Deployment
+
+**CypherAI is deployed and running on Google Cloud Run!**
+
+🌐 **Service URL**: https://cypherai-scanner-1008964463542.us-central1.run.app
+
+Test it now:
+```bash
+curl https://cypherai-scanner-1008964463542.us-central1.run.app/health
+```
+
+Expected response:
+```json
+{"status":"healthy","service":"Cypher AI Webhook Server","version":"1.0.0"}
+```
+
 ### Installation
 
 ```bash
@@ -1056,23 +1074,46 @@ python main.py --show-config
 
 ## 🚀 Deployment Guide
 
+### ✅ Production Deployment
+
+**CypherAI is live on Google Cloud Run!**
+
+🌐 **Service URL**: https://cypherai-scanner-1008964463542.us-central1.run.app
+
+**Deployment Details:**
+- ✅ Deployed to: Google Cloud Run (us-central1)
+- ✅ Status: Serving 100% of traffic
+- ✅ Health check: https://cypherai-scanner-1008964463542.us-central1.run.app/health
+- ✅ Auto-scaling: 0-10 instances
+- ✅ Memory: 2Gi
+- ✅ Timeout: 300s
+- ✅ HTTPS enabled with SSL certificate
+
+**Test it now:**
+```bash
+# Health check
+curl https://cypherai-scanner-1008964463542.us-central1.run.app/health
+
+# Expected response
+{"status":"healthy","service":"Cypher AI Webhook Server","version":"1.0.0"}
+```
+
+---
+
 ### Deployment-Ready Architecture
 
 CypherAI is production-ready and can be deployed to:
 
-**Option 1: Google Cloud Run** (Recommended for Agent Engine integration)
+**Option 1: Google Cloud Run** ✅ **DEPLOYED**
 ```bash
-# Build container
-docker build -t cypherai-scanner .
-
-# Deploy to Cloud Run
+# Already deployed! To redeploy:
 gcloud run deploy cypherai-scanner \
   --source . \
-  --platform managed \
   --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars GOOGLE_API_KEY=${GEMINI_API_KEY}
+  --set-secrets="GOOGLE_API_KEY=GOOGLE_API_KEY:latest"
 ```
+
+**Live Service**: https://cypherai-scanner-1008964463542.us-central1.run.app
 
 **Option 2: GitHub Actions (Current Integration)**
 ```yaml
