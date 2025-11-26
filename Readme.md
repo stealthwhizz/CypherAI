@@ -1,6 +1,6 @@
-# CYPHER AI
+# CypherAI
 
-## Multi-Agent DevSecOps Security Automation
+## Multi-Agent Security Scanning for Pull Requests
 
 <div align="center">
 
@@ -10,73 +10,48 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Google Gemini](https://img.shields.io/badge/Google-Gemini-4285F4.svg)](https://ai.google.dev/)
 
-### 🎓 Kaggle x Google 5-Day AI Agents Intensive Competition
+### 🎓 Kaggle x Google 5-Day AI Agents Competition
 
-**Enterprise Track Submission**
+**Enterprise Track**
 
-*Transforming DevSecOps from a manual bottleneck into intelligent, automated security that learns from every scan*
+*What if your security team was 5 AI agents that never sleep?*
 
-**[📖 Course Integration](COURSE_INTEGRATION.md)** • **[📚 Course Patterns](COURSE_PATTERNS.md)** • **[🔍 Course Alignment](COURSE_ALIGNMENT.md)**
+**[📖 Course Integration](COURSE_INTEGRATION.md)** • **[📚 Course Patterns](COURSE_PATTERNS.md)** • **[🔍 Cloud Deployment](CLOUD_DEPLOYMENT.md)**
 
 </div>
 
 -----
 
-## 🎯 The Problem We're Solving
+## 🎯 What This Is
 
-### The Enterprise Security Crisis
+I built this for the Kaggle AI Agents competition because I was tired of security reviews taking 2 weeks.
 
-Modern software development faces a critical security crisis that costs enterprises millions:
+The idea is simple: instead of one AI trying to do everything, have 5 specialized agents work together like a real security team.
 
-**💰 The Cost of Failure**
+**The Agents:**
+- 🔒 **Security Scanner** - Finds SQL injection, XSS, hardcoded secrets
+- 📋 **Compliance Enforcer** - Checks PCI DSS, HIPAA, GDPR requirements  
+- ⚡ **Performance Monitor** - Catches N+1 queries and slow code
+- 🧠 **Policy Engine** - Makes the final decision, learns over time
+- 👑 **Root Orchestrator** - Coordinates everyone in parallel
 
-  - Average data breach: **$4.45 million** (IBM Security Report 2024)
-  - 85% of enterprises lack sufficient in-house security expertise
-  - Vulnerabilities reach production undetected for **207 days on average**
-
-**⏰ The Productivity Drain**
-
-  - Security teams: **2 weeks per sprint** manually reviewing code
-  - DevOps engineers: **40% of time** wasted on compliance tasks
-  - False positives: **60% of security team bandwidth** consumed
-
-**🔌 The Integration Gap**
-
-  - Existing tools (Snyk, Checkmarx, SonarQube) work in isolation
-  - Security, compliance, and performance treated as separate concerns
-  - Single AI models cannot understand cross-domain context
-  - Teams manage multiple disconnected systems
-
-**Without automated, intelligent security in CI/CD pipelines, vulnerabilities slip through to production, compliance audits require weeks of manual preparation, and security becomes a development bottleneck instead of an enabler.**
+**The Result:** 0.82-second scans instead of 2-week reviews.
 
 -----
 
-## 💡 Our Solution: Intelligent Multi-Agent Coordination
+## 💰 Why This Matters
 
-**Cypher AI introduces a paradigm shift in DevSecOps automation through collaborative multi-agent intelligence.**
+Data breaches cost an average of **$4.45 million** (IBM 2024).
 
-Instead of a single AI making all decisions, we deploy **four specialized agents** that work together like a security team—communicating findings, sharing context, and learning from developer behavior to continuously improve accuracy.
+Most companies wait **2 weeks** for security reviews.
 
-### Why Multi-Agent Architecture Matters
+By then, you've either shipped the vulnerability or blown your deadline.
 
-Traditional security tools use **single AI models** for prioritization. They can't:
-
-  - ❌ Understand how security impacts compliance
-  - ❌ Detect when security fixes create performance issues
-  - ❌ Learn from team-specific developer patterns
-  - ❌ Coordinate findings across domains
-
-Cypher AI's agents **collaborate in real-time**, just like a human security team would:
-
-  - ✅ Security Scanner detects SQL injection
-  - ✅ Compliance Enforcer maps it to PCI DSS 6.5.1 violation
-  - ✅ Performance Monitor validates the fix won't slow queries
-  - ✅ Policy Engine checks: "Does this developer usually fix SQL issues quickly?"
-  - ✅ **Intelligent decision**: Block merge with context-aware severity
+CypherAI scans your PR in under a second and tells you exactly what's wrong.
 
 -----
 
-## 🏗️ System Architecture
+## 🏗️ How It Works
 
 <div align="center">
 
@@ -297,32 +272,30 @@ This project demonstrates mastery of all 5 days of course concepts while solving
 
 -----
 
-## 🔑 The Key Innovation: Agent Communication That Creates Intelligence
+## 🔑 What Makes This Different: Agents That Actually Talk
 
-What makes Cypher AI unique isn't just having multiple agents—**it's how they collaborate to create context-aware intelligence.**
+The magic isn't having 5 agents. It's what happens when they share information.
 
-### Real Example: SQL Injection Detection
+### Example: Finding a SQL Injection
 
-**Traditional Tool (Single AI)**:
-
+**Traditional Scanner:**
 ```
-1. Scanner: "SQL injection found in api/users.py:42"
-2. Decision: "CRITICAL - Block PR"
-3. Result: Developer ignores warning (false positive fatigue)
+"SQL injection found in api/users.py:42"
+→ Decision: "CRITICAL - Block PR"
+→ Developer: *ignores because tired of false positives*
 ```
 
-**Cypher AI (Multi-Agent Collaboration)**:
-
+**CypherAI Multi-Agent:**
 ```
 1. Security Scanner: "SQL injection in api/users.py:42"
-   └→ Shares with Compliance Enforcer
+   └→ Tells Compliance Enforcer
    
-2. Compliance Enforcer: "This violates PCI DSS 6.5.1 - mandatory fix"
-   └→ Shares with Performance Monitor
+2. Compliance Enforcer: "Wait, this violates PCI DSS 6.5.1"
+   └→ Tells Performance Monitor
    
-3. Performance Monitor: "Recommended fix (parameterized queries) 
-    will improve performance by 15ms per query"
-   └→ Shares with Policy Engine
+3. Performance Monitor: "The fix (parameterized queries) 
+    will actually speed things up by 15ms"
+   └→ Tells Policy Engine
    
 4. Policy Engine: "Developer fixed last 3 SQL issues within 2 hours.
     High trust score. This is genuinely critical."
@@ -1018,16 +991,6 @@ curl http://localhost:5000/health
 - **Course Alignment**: ADK directly implements the patterns taught in the 5-day course
 
 **See Full Justification**: [COURSE_INTEGRATION.md](COURSE_INTEGRATION.md)
-
------
-
-## 🏆 Why This Wins
-
-**Real Problem, Real Solution**: Prevents $4.45M breaches with 0.73-second AI security scans—turning DevSecOps from a 2-week bottleneck into instant, intelligent protection.
-
-**Novel Innovation**: First open-source multi-agent security system where AI specialists collaborate in real-time (Security ↔ Compliance ↔ Performance ↔ Policy) for context-aware decisions—not just isolated scans.
-
-**Production-Ready**: GitHub integration, audit reports, adaptive learning, and 100% course concept application with ADK multi-agent architecture.
 
 -----
 
