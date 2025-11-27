@@ -55,6 +55,44 @@ CypherAI scans your PR in under a second and tells you exactly what's wrong.
 
 ## 🏗️ How It Works
 
+### 🎯 Multi-Agent Architecture
+
+**5 AI Agents Working Together:**
+
+<div align="center">
+<img src="5Agents.png" alt="CypherAI Multi-Agent System" width="800">
+</div>
+
+- **Root Orchestrator Agent** (Center) - Gemini 1.5 Pro coordinates all agents
+- **Security Scanner Agent** - Detects OWASP Top 10 vulnerabilities with Bandit, Safety, Trivy
+- **Compliance Enforcer Agent** - Validates PCI DSS, HIPAA, SOC 2, GDPR requirements
+- **Performance Monitor Agent** - Finds N+1 queries, memory leaks, blocking operations
+- **Policy Engine Agent** - Adaptive learning, risk scoring, smart decisions
+
+**Each agent is specialized** - just like a real security team!
+
+---
+
+### ⚡ Complete Workflow (0.75 seconds)
+
+**From Pull Request to Security Decision:**
+
+<div align="center">
+<img src="Workflow.png" alt="CypherAI Complete Workflow" width="800">
+</div>
+
+1. Developer creates PR → GitHub Actions triggers CypherAI
+2. Root Orchestrator analyzes context → Selects relevant agents
+3. **Parallel Execution** - All 4 specialists run simultaneously
+4. Agents share findings → Cross-domain intelligence
+5. Risk score calculated (0-100) → APPROVE or BLOCK decision
+6. PR comment posted + Audit report generated
+7. Policy Engine learns from the scan
+
+**Result:** Security decisions in under 1 second! 🚀
+
+---
+
 <div align="center">
 
 ### Multi-Agent Coordination Pattern
